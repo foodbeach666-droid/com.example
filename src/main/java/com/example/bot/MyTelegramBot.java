@@ -164,7 +164,6 @@ public class MyTelegramBot {
             }
             return sb.toString();
         }
-
         if (message.equals("/clear")) {
             schedule.clear();
             saveSchedule();
