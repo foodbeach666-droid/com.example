@@ -17,6 +17,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
 public class MyTelegramBot {
 
@@ -49,7 +50,18 @@ public class MyTelegramBot {
             e.printStackTrace();
         }
     }
-
+    private static int removePastEntries() {
+        LocalDateTime now = LocalDateTime.now();
+        int oldSize = schedule.size();
+        schedule = schedule.stream()
+                .filter(entry -> entry.getTime().isAfter(now))
+                .collect(Collectors.toList());
+        int removedCount = oldSize - schedule.size();
+        if (removedCount > 0) {
+            saveSchedule();
+        }
+        return removedCount;
+    }
     public static void main(String[] args) {
         String botToken = "8530517849:AAEpj8GF1gkbM69Wb3Cjd6GfiFhOZcZc4RA";
 
@@ -75,6 +87,23 @@ public class MyTelegramBot {
     private static String handleMessage(TelegramBot bot, long chatId, String message) {
         message = message.trim();
 
+        if (pendingChatId == chatId && "waiting_remove".equals(pendingStep)) {
+            try {
+                int index = Integer.parseInt(message) - 1;
+                if (index >= 0 && index < schedule.size()) {
+                    ScheduleEntry removed = schedule.remove(index);
+                    saveSchedule();
+                    resetState();
+                    return "🗑️ Удалено: " + removed.getSubject() + " — " +
+                            removed.getTime().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
+                } else {
+                    return "❌ Неверный номер. Введи число от 1 до " + schedule.size();
+                }
+            } catch (NumberFormatException e) {
+                return "❌ Введи число — номер пары из списка.\nИли отправь /cancel для отмены.";
+            }
+        }
+
         if (pendingChatId == chatId && pendingSubject != null) {
             if (pendingStep.equals("waiting_full_datetime")) {
                 try {
@@ -90,7 +119,7 @@ public class MyTelegramBot {
                 } catch (DateTimeParseException e) {
                     return "Не понял дату/время:\n" + message + "\n" +
                             "Пример:\n2026-02-25 14:30\n25 февраля 14:30" +
-                    "\n25.02.2026 14:30";
+                            "\n25.02.2026 14:30";
                 }
             }
 
@@ -98,7 +127,6 @@ public class MyTelegramBot {
                 LocalDate date = LocalDate.now();
 
                 if (message.equals("Сегодня")) {
-                    // date остаётся
                 } else if (message.equals("Завтра")) {
                     date = date.plusDays(1);
                 } else if (message.equals("Послезавтра")) {
@@ -134,7 +162,13 @@ public class MyTelegramBot {
                 }
             }
         }
-    if (message.startsWith("/create")) {
+
+        if (message.equals("/cancel") && pendingChatId == chatId && pendingSubject != null) {
+            resetState();
+            return "Добавление отменено.";
+        }
+
+        if (message.startsWith("/create")) {
             String subject = message.substring(7).trim();
             if (subject.isEmpty()) {
                 return "Напиши: /create Название пары/дисциплины";
@@ -154,27 +188,82 @@ public class MyTelegramBot {
 
             return "Выбери день ↓";
         }
+
         if (message.equals("/track")) {
-            if (schedule.isEmpty()) return "Расписание пустое.";
-            StringBuilder sb = new StringBuilder("Расписание:\n");
-            for (ScheduleEntry entry : schedule) {
-                sb.append(entry.getSubject())
+            int removed = removePastEntries();
+
+            if (schedule.isEmpty()) {
+                if (removed > 0) {
+                    return "🗑️ Удалено " + removed + " прошедших пар.\n📭 Расписание пустое.";
+                }
+                return "📭 Расписание пустое.";
+            }
+
+            StringBuilder sb = new StringBuilder();
+            if (removed > 0) {
+                sb.append("🗑️ Автоматически удалено ").append(removed).append(" прошедших пар.\n\n");
+            }
+            sb.append("📅 Текущее расписание:\n");
+            for (int i = 0; i < schedule.size(); i++) {
+                ScheduleEntry entry = schedule.get(i);
+                sb.append(i + 1).append(". ")
+                        .append(entry.getSubject())
                         .append(" — ")
                         .append(entry.getTime().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")))
                         .append("\n");
             }
             return sb.toString();
         }
+
+        if (message.equals("/remove")) {
+            int removed = removePastEntries();
+
+            if (schedule.isEmpty()) {
+                if (removed > 0) {
+                    return "🗑️ Удалено " + removed + " прошедших пар.\n📭 Расписание пустое, нечего удалять.";
+                }
+                return "📭 Расписание пустое, нечего удалять.";
+            }
+
+            StringBuilder sb = new StringBuilder("🗑️ Введи номер пары для удаления:\n\n");
+            for (int i = 0; i < schedule.size(); i++) {
+                ScheduleEntry entry = schedule.get(i);
+                sb.append(i + 1).append(". ")
+                        .append(entry.getSubject())
+                        .append(" — ")
+                        .append(entry.getTime().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm")))
+                        .append("\n");
+            }
+            sb.append("\nЧтобы отменить, отправь /cancel");
+
+            pendingChatId = chatId;
+            pendingStep = "waiting_remove";
+            return sb.toString();
+        }
+
         if (message.equals("/clear")) {
             schedule.clear();
             saveSchedule();
-            return "Расписание очищено.";
+            resetState();
+            return "🧹 Расписание полностью очищено.";
         }
 
-        return "Команды:\n" +
-                "/create [предмет] — добавить\n" +
-                "/track — посмотреть\n" +
-                "/clear — очистить\n";
+        if (message.equals("/help")) {
+            return "📚 Доступные команды:\n\n" +
+                    "/create [предмет] — добавить новую пару\n" +
+                    "/track — показать расписание (старые пары удаляются автоматически)\n" +
+                    "/remove — удалить одну пару по номеру\n" +
+                    "/clear — удалить ВСЕ пары\n" +
+                    "/cancel — отменить текущее действие\n" +
+                    "/help — показать эту справку";
+        }
+
+        if (message.equals("/start")) {
+            return "🎓 Привет! Я бот для отслеживания расписания пар.\n\n" +
+                    "Отправь /help, чтобы увидеть список команд.";
+        }
+
+        return "❓ Неизвестная команда.\nОтправь /help для списка команд.";
     }
 
     private static void resetState() {
@@ -183,6 +272,7 @@ public class MyTelegramBot {
         pendingStep = null;
         pendingDate = null;
     }
+
     private static LocalDateTime parseDateTime(String input) {
         input = input.trim().toLowerCase()
                 .replace("т", "t")
