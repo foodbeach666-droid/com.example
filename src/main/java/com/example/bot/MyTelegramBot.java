@@ -140,7 +140,6 @@ public class MyTelegramBot {
             if (subject.isEmpty()) {
                 return "Напиши: /create Название пары/дисциплины";
             }
-
             pendingChatId = chatId;
             pendingSubject = subject;
             pendingStep = "waiting_day";
