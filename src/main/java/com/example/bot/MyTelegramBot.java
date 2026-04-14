@@ -134,7 +134,6 @@ public class MyTelegramBot {
                 }
             }
         }
-
     if (message.startsWith("/create")) {
             String subject = message.substring(7).trim();
             if (subject.isEmpty()) {
@@ -143,7 +142,6 @@ public class MyTelegramBot {
             pendingChatId = chatId;
             pendingSubject = subject;
             pendingStep = "waiting_day";
-
             ReplyKeyboardMarkup keyboard = new ReplyKeyboardMarkup(
                     new KeyboardButton("Сегодня"),
                     new KeyboardButton("Завтра"),
@@ -156,7 +154,6 @@ public class MyTelegramBot {
 
             return "Выбери день ↓";
         }
-
         if (message.equals("/track")) {
             if (schedule.isEmpty()) return "Расписание пустое.";
             StringBuilder sb = new StringBuilder("Расписание:\n");
