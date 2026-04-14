@@ -89,7 +89,8 @@ public class MyTelegramBot {
                     return msg;
                 } catch (DateTimeParseException e) {
                     return "Не понял дату/время:\n" + message + "\n" +
-                            "Пример:2026-02-25 14:30";
+                            "Пример:\n2026-02-25 14:30\n25 февраля 14:30" +
+                    "\n25.02.2026 14:30";
                 }
             }
 
@@ -104,7 +105,9 @@ public class MyTelegramBot {
                     date = date.plusDays(2);
                 } else if (message.equals("Ввести дату вручную")) {
                     pendingStep = "waiting_full_datetime";
-                    return "Введи дату и время\nПример:\n2026-02-25 14:30";
+                    return "Введи дату и время\nПример:\n2026-02-25 14:30" +
+                            "\n25 февраля 14:30" +
+                            "\n25.02.2026 14:30";
                 } else {
                     return "Выбери кнопку или «Ввести дату вручную»";
                 }
