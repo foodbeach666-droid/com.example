@@ -135,8 +135,8 @@ public class MyTelegramBot {
             }
         }
 
-        if (message.startsWith("/create ")) {
-            String subject = message.substring(8).trim();
+    if (message.startsWith("/create")) {
+            String subject = message.substring(7).trim();
             if (subject.isEmpty()) {
                 return "Напиши: /create Название пары/дисциплины";
             }
