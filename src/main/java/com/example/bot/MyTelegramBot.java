@@ -182,7 +182,6 @@ public class MyTelegramBot {
         pendingStep = null;
         pendingDate = null;
     }
-
     private static LocalDateTime parseDateTime(String input) {
         input = input.trim().toLowerCase()
                 .replace("т", "t")
