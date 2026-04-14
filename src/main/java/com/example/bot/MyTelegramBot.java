@@ -108,10 +108,8 @@ public class MyTelegramBot {
                 } else {
                     return "Выбери кнопку или «Ввести дату вручную»";
                 }
-
                 pendingDate = date;
                 pendingStep = "waiting_time";
-
                 return "День: " + date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")) +
                         "\nВведи время (Пример: 14:30)";
             }
