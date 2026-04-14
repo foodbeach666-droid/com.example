@@ -115,7 +115,6 @@ public class MyTelegramBot {
                 return "День: " + date.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")) +
                         "\nВведи время (Пример: 14:30)";
             }
-
             if (pendingStep.equals("waiting_time")) {
                 try {
                     LocalTime time = LocalTime.parse(message.trim(), DateTimeFormatter.ofPattern("H:mm"));
